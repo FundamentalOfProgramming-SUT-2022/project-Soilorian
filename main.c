@@ -2,28 +2,126 @@
 #include <stdio.h>
 #include <dir.h>
 #include <stdlib.h>
-#include <sys/stat.h>
 #include <dirent.h>
-#include <unistd.h>
-#include <stdlib.h>
 #include <ctype.h>
 #include <math.h>
+#include <stdbool.h>
+#include <limits.h>
 
 #define limit 1000
 
-int Atrs[limit][limit]={0}, end=0, commandLength, dastoor=0, fileNu=0,err[limit]={0};
+char *Atrs[limit]={0};
+bool whatAtrs[limit]={false},end=false, err[limit]={false};
+long long commandLength;
+int dastoor=0;
 
 //Atrs 0= file
 //1= str
+//2= pos Line
+//3= pos char
 
 struct WWL{
     char *word;
     int length;
 };
 
+struct linkedlist{
+    char *c;
+    bool death;
+    int length;
+    struct linkedlist* next;
+    struct linkedlist* prev;
+};
+
+struct linkedlist* create_linkedlist(void){
+    struct linkedlist *list1 = (struct linkedlist *)malloc(sizeof(struct linkedlist));
+    list1->death= false;
+    list1->next =NULL;
+    list1->prev =NULL;
+    return list1;
+}
+
+void delete_linkedList(struct linkedlist *list){
+    if(list->next!=(void *)0)
+        delete_linkedList(list->next);
+    free(list->c);
+    free(list);
+}
+
+void remove_with_index(int n, struct linkedlist * list){
+    n--;
+    if(list->death){
+        if(list->next==NULL)
+            return;
+        remove_with_index(n, list->next);
+
+    }if(n==0)
+        list->death= true;
+    if(list->next==NULL)
+        return;
+    else
+        remove_with_index(n-1, list->next);
+}
+
+void add(struct linkedlist* list, char *c, int l){
+    if(list->death)
+        add(list->next, c, l);
+    if(list->next==NULL){
+        list->length=l;
+        list->c=c;
+        list->next=(struct linkedlist *) malloc(sizeof(struct linkedlist));
+        list->next->next=NULL;
+        list->next->prev=list;
+        list->next->death= false;
+    }
+    else
+        add(list->next, c, l);
+}
+
+void add_with_index(struct linkedlist* list, char *c, int l, int index){
+
+}
+
+int size(struct linkedlist *list){
+    if(list->death){
+        if(list->next==NULL)
+            return 0;
+        return size( list->next);
+    }
+    if(list->next==NULL)
+        return 1;
+    else
+        return 1+ size( list->next);
+
+}
+
+char *get(int a, struct linkedlist * list){
+    if(list->death)
+        return get(a, list->next);
+    if(a==0)
+        return list->c;
+    else
+        return get(a-1, list->next);
+}
+
+void remove_with_char(char *c, struct linkedlist * list){
+    if(list->death)
+        remove_with_char(c, list->next);
+    if(list->c==c)
+        list->death= true;
+
+    if(list->next==NULL)
+        return;
+    else
+        remove_with_char(c, list->next);
+}
+
+
+
 // file syntax
 //fopen("name", "mode")
 //fwrite("phrase", bytes of phrase, 1, what file);
+
 /* test that dir exists (1 success, -1 does not exist, -2 not dir) */
 int xis_dir (const char *d)
 {
@@ -50,6 +148,17 @@ void goNextLine(void){
     } while (c!='\n');
 }
 
+int count_line(FILE* file){
+    int l=1;
+    char temp;
+    do {
+        temp= fgetc(file);
+        if(temp=='\n')
+            l++;
+    } while (temp!=EOF);
+    return l;
+}
+
 char *rest(int , char*);
 
 void checkForAtrs(char *);
@@ -63,14 +172,15 @@ void create(char *address, int , int );
 char *restWithSp(int i, char *word);
 
 
-int strToNum(char *num);
+long long strToNum(char *num);
+
+void insert(char *path, int l, int where, char * str, long long Line, long long c );
 
 int main(){
     mkdir("root");
     do {
-        for (int i = 0; i < limit; ++i) {
-            memset(Atrs[i], 0, sizeof(Atrs[i]));
-        }
+            memset(Atrs, 0, sizeof(Atrs));
+        memset(whatAtrs, 0, sizeof(whatAtrs));
 
         char command[limit]={0};
         scanf("%[^\n]s", command);
@@ -85,22 +195,48 @@ int main(){
                     printf("invalid command\n");
                     break;
                 case 1:
-                    if(Atrs[fileNu][0]){
-                        Atrs[fileNu][0]=0;
+                    if(whatAtrs[0]){
+                        whatAtrs[0]=0;
                         int length=0;
-                        for (int i = 1;Atrs[fileNu][i]!='\0'; ++i) {
+                        for (int i = 0;*(*(Atrs+0)+i)!='\0'; ++i) {
                             length++;
                         }
                         char path[length];
                         for (int i = 0; i < length; ++i) {
-                            path[i]=Atrs[fileNu][i+1];
+                            path[i]=Atrs[0][i];
                         }
                         create(path, length, 0);
                     }
                     else
                         printf("invalid command\n");
                     break;
-                case limit:
+                case 2:
+                    if(whatAtrs[0] && whatAtrs[1] && whatAtrs[2]){
+                        for (int i = 0; i < 3; ++i) {
+                            whatAtrs[i]=0;
+                        }
+                        int length=0;
+                        for (int i = 0;Atrs[0][i]!='\0'; ++i) {
+                            length++;
+                        }
+                        char path[length];
+                        for (int i = 0; i < length; ++i) {
+                            path[i]=Atrs[0][i];
+                        }
+                        int length2=1;
+                        for (int i = 1;Atrs[1][i]!='\0'; ++i) {
+                            length2++;
+                        }
+                        char insertingStr[length2];
+                        for (int i = 0; i <= length2; ++i) {
+                            insertingStr[i]=Atrs[1][i];
+                        }
+                        insert(path, length, 0, insertingStr, (long long)Atrs[2], (long long)Atrs[3]);
+                    }
+                    else
+                        printf("invalid command\n");
+                    break;
+                default:
                     break;
             }
         }
@@ -171,6 +307,7 @@ int whatcommand(char *word) {
             return -1;
 
     }
+    return -1;
 }
 
 void checkForAtrs(char *command){
@@ -180,51 +317,48 @@ void checkForAtrs(char *command){
             case 'f': {
                 char *test = rest(++i, command);
                 if((!(strcmp(test, "ile")))&&(dastoor<12)){
-                        Atrs[++fileNu][0]=1;
+                        whatAtrs[0]=1;
                     char* test2;
                         if(*(command+i+4)=='\"')
                             test2= restWithSp(i+4, command);
                         else
                             test2= rest(i+4, command);
-                        int l= strlen(test2);
-                        for(int j = 1; j <= l; ++j) {
-                            Atrs[fileNu][j]= test2[j-1];
-                        }
-                        Atrs[fileNu][l+1]='\0';
-                    return;
+                        *Atrs=test2;
+                    }
                 }
-                }
+                    break;
                 case 's': {
                     char *test = rest(++i, command);
-                    if((!(strcmp(test, "tr")))&&(dastoor=2)||((dastoor<=10)&&(dastoor>=8))){
-                        Atrs[++fileNu][1]=1;
+                    if((!(strcmp(test, "tr")))&&((dastoor=2)||((dastoor<=10)&&(dastoor>=8)))){
+                        whatAtrs[1]=1;
                         char* test2;
                         if(*(command+i+3)=='\"')
                             test2= restWithSp(i+3, command);
                         else
                             test2= rest(i+3, command);
-                        int l= strlen(test2);
-                        for(int j = 1; j <= l; ++j) {
-                            Atrs[fileNu][j]= test2[j-1];
-                        }
-                        Atrs[fileNu][l+1]='\0';
-                        return;
+                        Atrs[1]=test2;
                     }
                 }
+                    break;
                 case 'p': {
+                    whatAtrs[2]=true;
                     char *test = rest(++i, command);
                     if((!(strcmp(test, "os")))&&(dastoor=2)||((dastoor<=7)&&(dastoor>=4))){
                         int l=0;
                         char c;
+                        i+=3;
                         do{
                             l++;
                             c= command[++i];
                         }while(c != ':');
-                        Atrs[fileNu][1]=strToNum(command[i-l]);
-                        Atrs[fileNu][2]=strToNum(command[++i]);
-                        return;
+                        command[i]='\0';
+                        long long L=strToNum(command+i - l);
+                        long long C=strToNum(command+i+1);
+                        Atrs[2]=L;
+                        Atrs[3]=C;
                     }
                 }
+                    break;
                 default:
                     printf("invalid Atribute!\n");
                     goNextLine();
@@ -236,6 +370,7 @@ void checkForAtrs(char *command){
 void create(char *path, int l, int where){
     if(!(isalpha(*path))){
         path++;
+        path[l-2]='\0';
     }
     struct WWL folfile = restTillBksl(where, path);
     char P[where+folfile.length+1];
@@ -251,11 +386,17 @@ void create(char *path, int l, int where){
     }
     else{
         if(l<=where+folfile.length+3){
-            if(fopen(path, "r")!='\0'){
+            if(fopen(path, "r")!=(void *)0){
                 printf("file already exists!\n");
                 return;
             }
             FILE *s=fopen(path, "w");
+            if(s==(void *)0) {
+                printf("unexpected error: %s,%d\n", __FUNCTION__, __LINE__);
+                return;
+            }
+            else
+                printf("done!\n");
             fclose(s);
         }
         else{
@@ -289,16 +430,26 @@ char *restWithSp(int i, char *word) {
     do{
         l++;
         c= word[++i];
-    }while(c!=0 &&c!='\n');
+        if(c=='\\'&&word[i+1]=='n'){
+            word[i++]='\n';
+            word[i-2]='\0';
+        }
+        if(c=='\\'&&word[i+1]=='\\'){
+            word[i++]='\\';
+            word[i-2]='\0';
+        }
+    }while(c!=0 &&c!='\n' && (c!=' ' || word[i+1]!='-'));
     char *check= malloc(l+1);
     for (int j = 0; j < l; ++j) {
+        if(word[j+i-l]=='\0')
+            i++;
         check[j] = word[j+i-l];
     }
     check[l] = '\0';
     return check;
 }
 
-int strToNum(char *num) {
+long long strToNum(char *num) {
     int l= strlen(num);
     int ans=0;
     for (int i = 0; i < l; ++i) {
@@ -335,5 +486,63 @@ int strToNum(char *num) {
             default:
                 return -1;
         }
+    }
+    return ans;
+}
+
+void insert(char *path, int l, int where, char *str, long long int Line, long long int c) {
+    if(!(isalpha(*path))){
+        path++;
+        path[l-2]='\0';
+    }
+    struct WWL folfile = restTillBksl(where, path);
+    char P[where+folfile.length+1];
+    char temp=path[where+folfile.length];
+    path[where+folfile.length]='\0';
+    strcpy(P, path);
+    path[where+folfile.length]=temp;
+    if(xis_dir(P)==1){
+        insert(path, l, where+folfile.length, str, Line, c);
+    }
+    else if(xis_dir(folfile.word)==-2){
+        printf("file already exists!\n");
+    }
+    else if(l<=where+folfile.length+3){
+
+            if(fopen(path, "r")==(void *)0){
+                printf("file doesn't exist!\n");
+                return;
+            }
+            FILE *f=fopen(path, "r+");
+            char buff;
+            long long L=1;
+            bool success=false;
+            struct linkedlist* Lines=create_linkedlist();
+            char **giveMeSec= (char**)malloc(count_line(f) * sizeof(char *));
+            int i=0, len=0;
+        char tempchar;
+            do {
+                tempchar = giveMeSec[len][i++]= fgetc(f);
+                if(tempchar=='\n' || tempchar!=EOF){
+                    realloc((void *)giveMeSec[len], i);
+                    add(Lines, giveMeSec[len++], i);
+                    i=0;
+                }
+            } while (tempchar!=EOF);
+
+
+        fclose(f);
+            if(success){
+                printf("done!\n");
+                return;
+            }
+            else{
+                printf("unexpected error: %s,%d\n",__FUNCTION__ ,__LINE__);
+                return;
+            }
+        }
+    else{
+        printf("Invalid address!\n");
+        return;
     }
 }
