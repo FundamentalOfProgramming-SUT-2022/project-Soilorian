@@ -33,131 +33,29 @@ struct linkedlist{
     struct linkedlist* prev;
 };
 
-struct linkedlist* create_linkedlist(void){
-    struct linkedlist *list1 = (struct linkedlist *)malloc(sizeof(struct linkedlist));
-    list1->death= false;
-    list1->next =NULL;
-    list1->prev =NULL;
-    return list1;
-}
+void char_fixer(char *smt);
 
-void delete_linkedList(struct linkedlist *list){
-    if(list->next!=(void *)0)
-        delete_linkedList(list->next);
-    free(list->c);
-    free(list);
-}
+struct linkedlist* create_linkedlist(void);
 
-void remove_with_index(int n, struct linkedlist * list){
-    n--;
-    if(list->death){
-        if(list->next==NULL)
-            return;
-        remove_with_index(n, list->next);
+void delete_linkedList(struct linkedlist *list);
 
-    }if(n==0)
-        list->death= true;
-    if(list->next==NULL)
-        return;
-    else
-        remove_with_index(n-1, list->next);
-}
+void remove_with_index(int n, struct linkedlist * list);
 
-void add(struct linkedlist* list, char *c, int l){
-    if(list->death)
-        add(list->next, c, l);
-    if(list->next==NULL){
-        list->length=l;
-        list->c=c;
-        list->next=(struct linkedlist *) malloc(sizeof(struct linkedlist));
-        list->next->next=NULL;
-        list->next->prev=list;
-        list->next->death= false;
-    }
-    else
-        add(list->next, c, l);
-}
+void add(struct linkedlist* list, char *c, int l);
 
-void add_with_index(struct linkedlist* list, char *c, int l, int index){
+void add_with_index(struct linkedlist* list, char *c, int l, int index);
 
-}
+int size(struct linkedlist *list);
 
-int size(struct linkedlist *list){
-    if(list->death){
-        if(list->next==NULL)
-            return 0;
-        return size( list->next);
-    }
-    if(list->next==NULL)
-        return 1;
-    else
-        return 1+ size( list->next);
+char *get(int a, struct linkedlist * list);
 
-}
-
-char *get(int a, struct linkedlist * list){
-    if(list->death)
-        return get(a, list->next);
-    if(a==0)
-        return list->c;
-    else
-        return get(a-1, list->next);
-}
-
-void remove_with_char(char *c, struct linkedlist * list){
-    if(list->death)
-        remove_with_char(c, list->next);
-    if(list->c==c)
-        list->death= true;
-
-    if(list->next==NULL)
-        return;
-    else
-        remove_with_char(c, list->next);
-}
-
-
-
-// file syntax
-//fopen("name", "mode")
-//fwrite("phrase", bytes of phrase, 1, what file);
-
+void remove_with_char(char *c, struct linkedlist * list);
 /* test that dir exists (1 success, -1 does not exist, -2 not dir) */
-int xis_dir (const char *d)
-{
-    DIR *dirptr;
+int xis_dir (const char *d);
 
-    if (access ( d, F_OK ) != -1 ) {
-        // file exists
-        if ((dirptr = opendir (d)) != NULL) {
-            closedir (dirptr); /* d exists and is a directory */
-        } else {
-            return -2; /* d exists but is not a directory */
-        }
-    } else {
-        return -1;     /* d does not exist */
-    }
+void goNextLine(void);
 
-    return 1;
-}
-
-void goNextLine(void){
-    char c;
-    do {
-        c=getchar();
-    } while (c!='\n');
-}
-
-int count_line(FILE* file){
-    int l=1;
-    char temp;
-    do {
-        temp= fgetc(file);
-        if(temp=='\n')
-            l++;
-    } while (temp!=EOF);
-    return l;
-}
+int count_line(FILE* file);
 
 char *rest(int , char*);
 
@@ -170,7 +68,6 @@ struct WWL restTillBksl(int i, char *word);
 void create(char *address, int , int );
 
 char *restWithSp(int i, char *word);
-
 
 long long strToNum(char *num);
 
@@ -251,6 +148,14 @@ char *rest(int i, char *word){
     do{
         l++;
         c= word[++i];
+        if(c=='\\'&&word[i+1]=='n'){
+            word[i++]='\n';
+            word[i-2]='~';
+        }
+        if(c=='\\'&&word[i+1]=='\\') {
+            word[i++] = '\\';
+            word[i - 2] = '~';
+        }
     }while(c != ' ' && c!=0 &&c!='\n');
     char *check= malloc(l+1);
     for (int j = 0; j < l; ++j) {
@@ -432,11 +337,11 @@ char *restWithSp(int i, char *word) {
         c= word[++i];
         if(c=='\\'&&word[i+1]=='n'){
             word[i++]='\n';
-            word[i-2]='\0';
+            word[i-2]='~';
         }
         if(c=='\\'&&word[i+1]=='\\'){
             word[i++]='\\';
-            word[i-2]='\0';
+            word[i-2]='~';
         }
     }while(c!=0 &&c!='\n' && (c!=' ' || word[i+1]!='-'));
     char *check= malloc(l+1);
@@ -546,3 +451,148 @@ void insert(char *path, int l, int where, char *str, long long int Line, long lo
         return;
     }
 }
+
+void add_with_index(struct linkedlist *list, char *c, int l, int index) {
+    if(list->death)
+        add_with_index(list->next, c, l, index);
+    if(l==1){
+        for (int i = 0; i < list->length; ++i) {
+            if(i==index){
+                char_fixer(c);
+                char *temp= restWithSp(i, list->c);
+                *((list->c)+i)='\0';
+                strcat(list->c, c);
+                strcat(list->c, temp);
+            }
+        }
+    }
+    else
+        add_with_index(list->next, c, l-1, index);
+}
+
+void char_fixer(char *smt) {
+    int j=0, i=0;
+    char c;
+    do {
+        if(smt[i]=='~')
+            j++;
+        c=smt[i]=smt[i+j];
+        i++;
+    } while (c!='\0');
+}
+
+struct linkedlist *create_linkedlist(void) {
+    struct linkedlist *list1 = (struct linkedlist *)malloc(sizeof(struct linkedlist));
+    list1->death= false;
+    list1->next =NULL;
+    list1->prev =NULL;
+    return list1;
+}
+
+void delete_linkedList(struct linkedlist *list) {
+    if(list->next!=(void *)0)
+        delete_linkedList(list->next);
+    free(list->c);
+    free(list);
+}
+
+void remove_with_index(int n, struct linkedlist *list) {
+    n--;
+    if(list->death){
+        if(list->next==NULL)
+            return;
+        remove_with_index(n, list->next);
+
+    }if(n==0)
+        list->death= true;
+    if(list->next==NULL)
+        return;
+    else
+        remove_with_index(n-1, list->next);
+}
+
+void add(struct linkedlist *list, char *c, int l) {
+    if(list->death)
+        add(list->next, c, l);
+    if(list->next==NULL){
+        list->length=l;
+        list->c=c;
+        list->next=(struct linkedlist *) malloc(sizeof(struct linkedlist));
+        list->next->next=NULL;
+        list->next->prev=list;
+        list->next->death= false;
+    }
+    else
+        add(list->next, c, l);
+}
+
+int size(struct linkedlist *list) {
+    if(list->death){
+        if(list->next==NULL)
+            return 0;
+        return size( list->next);
+    }
+    if(list->next==NULL)
+        return 1;
+    else
+        return 1+ size( list->next);
+
+}
+
+char *get(int a, struct linkedlist *list) {
+    if(list->death)
+        return get(a, list->next);
+    if(a==0)
+        return list->c;
+    else
+        return get(a-1, list->next);
+}
+
+void remove_with_char(char *c, struct linkedlist *list) {
+    if(list->death)
+        remove_with_char(c, list->next);
+    if(list->c==c)
+        list->death= true;
+
+    if(list->next==NULL)
+        return;
+    else
+        remove_with_char(c, list->next);
+}
+
+int xis_dir(const char *d) {
+    DIR *dirptr;
+
+    if (access ( d, F_OK ) != -1 ) {
+        // file exists
+        if ((dirptr = opendir (d)) != NULL) {
+            closedir (dirptr); /* d exists and is a directory */
+        } else {
+            return -2; /* d exists but is not a directory */
+        }
+    } else {
+        return -1;     /* d does not exist */
+    }
+
+    return 1;
+}
+
+void goNextLine(void) {
+    char c;
+    do {
+        c=getchar();
+    } while (c!='\n');
+}
+
+int count_line(FILE *file) {
+    int l=1;
+    char temp;
+    do {
+        temp= fgetc(file);
+        if(temp=='\n')
+            l++;
+    } while (temp!=EOF);
+    return l;
+}
+
+void list_to_file(struct linkedlist* list, )
