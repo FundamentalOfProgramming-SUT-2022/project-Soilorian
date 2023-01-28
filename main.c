@@ -406,7 +406,7 @@ long long strToNum(char *num) {
 void insert(char *path, int l, int where, char *str, long long int Line, long long int c) {
     if(!(isalpha(*path))){
         path++;
-        path[l-2]='\0';
+        path[l-1]='\0';
     }
     struct WWL folfile = restTillBksl(where, path);
     char P[where+folfile.length+1];
@@ -428,6 +428,7 @@ void insert(char *path, int l, int where, char *str, long long int Line, long lo
             }
             FILE *f=fopen(path, "r+");
             struct linkedlist *Lines= fileToList(f);
+            fseek(f, 0, SEEK_SET);
             add_with_index(Lines, str, strlen(str),Line, c);
             list_to_file(Lines, f);
             fclose(f);
@@ -459,6 +460,7 @@ void add_with_index(struct linkedlist *list, char *c, int length,int l, int inde
                 strcat(list->c, c);
                 strcat(list->c, temp);
                 list->length= strlen(list->c);
+                break;
             }
         }
     }
@@ -602,7 +604,6 @@ void list_to_file(struct linkedlist *list, FILE *f) {
         else
             return;
     }
-    fseek(f, 0, SEEK_SET);
     fputs(list->c, f);
     if(list->next->c!=(void *)0)
         list_to_file(list->next, f);
@@ -619,7 +620,6 @@ struct linkedlist *fileToList(FILE *f) {
     giveMeSec[len]= malloc(INT_MAX);
     do {
         tempchar = giveMeSec[len][i++]= fgetc(f);
-//                printf("%d", tempchar);
         if(tempchar=='\n' || tempchar==EOF){
             realloc((void *)giveMeSec[len], i);
             if(tempchar==EOF)
