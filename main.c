@@ -12,7 +12,7 @@
 
 #define limit 1000
 
-char *Atrs[limit]={0};
+char *Atrs[limit]={0}, *clipboard= NULL;
 bool whatAtrs[limit]={false},end=false, err[limit]={false}, success=false;
 long long commandLength;
 int dastoor=0;
@@ -77,6 +77,8 @@ void removeWithPosF(struct linkedlist* list, long long Lines, long long c);
 
 void removeWithPosB(struct linkedlist* list, long long Lines, long long c);
 
+char copyF(struct linkedlist* list, long long Lines, long long c);
+
 int xis_dir(const char *d);
 
 int pathChecker(char *path, int l, int where);
@@ -106,6 +108,8 @@ void insert(char *path, int l, int where, char * str, long long Line, long long 
 void cat(char *path, int l, int where);
 
 void removeFile(char *path, int l, int where, long long Lines, long long c, int direction, long long size);
+
+void copy(char *path, int l, int where, long long Lines, long long c, int direction, long long size);
 
 int main(){
     mkdir("root");
@@ -169,6 +173,7 @@ int main(){
                     break;
                     //
                 case 4:
+                    //
                     if( whatAtrs[0] && whatAtrs[2] && whatAtrs[3] && whatAtrs[4] ){
                         whatAtrs[0]=false;
                         for (int i = 2; i < 5; ++i) {
@@ -176,6 +181,18 @@ int main(){
                         }
                         path=pathMaker();
                         removeFile(path.word, path.length, 0, (long long)Atrs[2],
+                                   (long long)Atrs[3], (long long)Atrs[4], (long long)Atrs[5]);
+                        free(path.word);
+                    }
+                    //
+                case 5:
+                    if( whatAtrs[0] && whatAtrs[2] && whatAtrs[3] && whatAtrs[4] ){
+                        whatAtrs[0]=false;
+                        for (int i = 2; i < 5; ++i) {
+                            whatAtrs[i]=false;
+                        }
+                        path=pathMaker();
+                        copy(path.word, path.length, 0, (long long)Atrs[2],
                                    (long long)Atrs[3], (long long)Atrs[4], (long long)Atrs[5]);
                         free(path.word);
                     }
@@ -198,15 +215,15 @@ int whatcommand(char *word) {
     switch(word[i++]){
         case 'c':
             switch (word[i++]) {
-                case 'r': {
+                case 'r':
                     if (!(strcmp(rest(i, word), "eate")))
                         return 1;
-                    if(!(strcmp(rest(i, word), "emove")))
-                        return 4;
-                }
                 case 'a':
                     if(word[i]=='t')
                         return 3;
+                case 'o':
+                    if(!(strcmp(rest(i, word), "py")))
+                        return 5;
                 default:
                     return -1;
             }
@@ -235,7 +252,6 @@ int whatcommand(char *word) {
         case '-':
             break;
         default:
-            //goNextLine();
             return -1;
 
     }
@@ -249,12 +265,12 @@ void checkForAtrs(char *command){
             switch(command[++i]){
                 case 'f': {
                     //
-                    if(command[i+1]==' '||command[i+1]==EOF&&((dastoor >= 4) && (dastoor <= 6))){
+                    if(((command[++i]==' ')||(command[i]=='\0')||(command[i]=='\n'))&&((dastoor >= 4) && (dastoor <= 6))){
                         whatAtrs[3]=true;
                         Atrs[4]=((long long)1);
                         break;
                     }
-                    char *test = rest(++i, command);
+                    char *test = rest(i, command);
                     if((!(strcmp(test, "ile")))&&(dastoor<12)){
                             whatAtrs[0]=1;
                         char* test2;
@@ -431,6 +447,36 @@ void removeFile(char *path, int l, int where, long long Lines, long long c, int 
         printf("done!\n");
     success=false;
     fclose(f);
+}
+
+void copy(char *path, int l, int where, long long int Lines, long long int c, int direction, long long int size) {
+    if(!pathChecker(path, l, where))
+        return;
+    FILE * f=fopen(path, "r");
+    struct linkedlist* target = fileToList(f);
+    if(!direction){
+        for (int i = 0; i < size; ++i) {
+            if(c!=0)
+                c--;
+            else{
+                if(Lines==1){
+                    printf("reached the beginning!\n");
+                    break;
+                }
+                Lines--;
+            }
+        }
+    }
+    clipboard=realloc(clipboard, size+1);
+    for (int i = 0; i < size; ++i) {
+        clipboard[i]=copyF(target, Lines, c+i);
+    }
+    clipboard[size]='\0';
+    if(success)
+        printf("done!\n");
+    success=false;
+    fclose(f);
+//    printf("%s", clipboard);
 }
 
 char *rest(int i, char *word){
@@ -714,7 +760,7 @@ struct linkedlist *fileToList(FILE *f) {
     do {
         tempchar = giveMeSec[len][i++]= fgetc(f);
         if(tempchar=='\n' || tempchar==EOF){
-            realloc((void *)giveMeSec[len], i);
+            giveMeSec[len]=realloc((void *)giveMeSec[len], i);
             if(tempchar==EOF)
                 giveMeSec[len][i-1]='\0';
             else
@@ -895,4 +941,37 @@ char *restWithSpFixed(int i, char *word) {
     }
     check[l] = '\0';
     return check;
+}
+
+char copyF(struct linkedlist *list, long long int Lines, long long int c) {
+    if(list->death){
+        if(list->next==NULL){
+            printf("reached EOF!\n");
+            return '\0';
+        }
+        return copyF(list->next, Lines, c);
+    }
+    if(Lines==1){
+        if(list->length<=c) {
+            if(list->next==NULL){
+                printf("reached EOF!\n");
+                return '\0';
+            }
+            return copyF(list->next, Lines, c-list->next->length);
+        }
+        else{
+            for (int i = 0; i < list->length; ++i) {
+                if(i==c){
+                    return list->c[i];
+                }
+            }
+        }
+    }
+    else{
+        if(list->next==NULL){
+            printf("reached EOF!\n");
+            return '\0';
+        }
+        return copyF(list->next, Lines-1, c);
+    }
 }
